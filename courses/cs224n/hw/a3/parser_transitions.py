@@ -7,6 +7,16 @@ Sahil Chopra <schopra8@stanford.edu>
 """
 
 import sys
+import logging
+
+
+FORMAT = '%(asctime)-15s  %(lineno)-3s %(module)-8s %(message)s '
+logging.basicConfig(format=FORMAT)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+# logger.addHandler(logging.StreamHandler())
+
 
 class PartialParse(object):
     def __init__(self, sentence):
@@ -30,8 +40,6 @@ class PartialParse(object):
         ###
         ### Note: The root token should be represented with the string "ROOT"
         ###
-
-        print(self.sentence)
         self.stack = ["ROOT"]
         self.buffer = self.sentence.copy()
         self.dependencies = []
@@ -54,13 +62,16 @@ class PartialParse(object):
         ###         2. Left Arc
         ###         3. Right Arc
         if transition == 'S':
+            # remove last item in the stack
             self.stack.append(self.buffer.pop(0))
         elif transition == 'LA':
+            #  [..., n-1, n] :  n -> n-1
             popped = self.stack.pop(-2)
-            self.dependencies.append((self.stack[-1], popped ))
+            self.dependencies.append((self.stack[-1], popped))
         elif transition == 'RA':
+            #  [..., n-1, n] :  n-1 -> n
             popped = self.stack.pop(-1)
-            self.dependencies.append(( self.stack[-1], popped ))
+            self.dependencies.append(( self.stack[-1], popped))
 
         ### END YOUR CODE
 
@@ -75,6 +86,7 @@ class PartialParse(object):
         """
         for transition in transitions:
             self.parse_step(transition)
+            logger.debug(f'performing transition {transition} for sentence {self.sentence}')
         return self.dependencies
 
 
@@ -113,6 +125,43 @@ def minibatch_parse(sentences, model, batch_size):
     ###             is being accessed by `partial_parses` and may cause your code to crash.
 
 
+    # init parser
+    partial_parses = [PartialParse(s) for s in sentences]
+
+    unfinished_parses = partial_parses[:]
+    dependencies = [[] for _ in partial_parses]
+
+    while unfinished_parses:
+        for start  in range(0, len(unfinished_parses), batch_size):
+            end = min(start + batch_size, len(unfinished_parses))
+            logger.debug(f'batch : {start, end}')
+            minibatch_parse = unfinished_parses[start:end]
+            logger.debug(f'minibatch parse: {minibatch_parse}')
+            transitions = model.predict(minibatch_parse)
+            logger.debug(transitions)
+            for e in range(len(transitions)):
+                minibatch_parse[e].parse([transitions[e]])
+                logger.debug(f'parsed dependencies {minibatch_parse[e].dependencies}'
+                    f'\n\t stack {minibatch_parse[e].stack}'
+                    f'\n\t buffer {minibatch_parse[e].buffer}'
+                    f'\n\t for sentence {minibatch_parse[e].sentence}')
+
+        remove = []
+        for p in unfinished_parses:
+            if (not p.buffer) and len(p.stack) == 1:
+                dependencies[partial_parses.index(p)] = p.dependencies.copy()
+                remove.append(p)
+        for p in remove:
+            unfinished_parses.remove(p)
+
+        logger.debug(f'remaining indices {[partial_parses.index(i) for i in unfinished_parses]}')
+        if len(unfinished_parses) == 1:
+            logger.debug(f'buggy unfinished stack{unfinished_parses[0].stack}')
+            logger.debug(f'buggy unfinished buffer {unfinished_parses[0].buffer}')
+            logger.debug(f'buggy unfinished index {partial_parses.index(unfinished_parses[0])}')
+
+        logger.debug(f'parsed dependencies {dependencies}')
+        logger.debug(f'remaining parses {len(unfinished_parses)}')
     ### END YOUR CODE
 
     return dependencies
@@ -168,7 +217,8 @@ class DummyModel(object):
     the sentence is "right", "left" if otherwise.
     """
     def predict(self, partial_parses):
-        return [("RA" if pp.stack[1] is "right" else "LA") if len(pp.buffer) == 0 else "S"
+        logger.debug([pp for pp in partial_parses])
+        return [("RA" if pp.stack[1] is "right" else "LA") if not pp.buffer else "S"
                 for pp in partial_parses]
 
 
@@ -203,10 +253,10 @@ if __name__ == '__main__':
     args = sys.argv
     if len(args) != 2:
         raise Exception("You did not provide a valid keyword. Either provide 'part_c' or 'part_d', when executing this script")
-    elif args[1] == "part_c":
+    elif args[1] == "test_parser":
         test_parse_step()
         test_parse()
-    elif args[1] == "part_d":
+    elif args[1] == "test_minibatch_parser":
         test_minibatch_parse()
     else:
         raise Exception("You did not provide a valid keyword. Either provide 'part_c' or 'part_d', when executing this script")
