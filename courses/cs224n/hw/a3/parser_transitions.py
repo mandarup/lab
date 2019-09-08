@@ -9,13 +9,16 @@ Sahil Chopra <schopra8@stanford.edu>
 import sys
 import logging
 
+from utils import logging_utils
 
-FORMAT = '%(asctime)-15s  %(lineno)-3s %(module)-8s %(message)s '
-logging.basicConfig(format=FORMAT)
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+# FORMAT = '%(asctime)-15s  %(lineno)-3s %(module)-8s %(message)s '
+# logging.basicConfig(format=FORMAT)
+#
+# logger = logging.getLogger(__name__)
+# logger.setLevel(logging.INFO)
 # logger.addHandler(logging.StreamHandler())
+
+logger = logging_utils.get_logger(loglevel = logging.INFO)
 
 
 class PartialParse(object):
@@ -134,17 +137,15 @@ def minibatch_parse(sentences, model, batch_size):
     while unfinished_parses:
         for start  in range(0, len(unfinished_parses), batch_size):
             end = min(start + batch_size, len(unfinished_parses))
-            logger.debug(f'batch : {start, end}')
-            minibatch_parse = unfinished_parses[start:end]
-            logger.debug(f'minibatch parse: {minibatch_parse}')
-            transitions = model.predict(minibatch_parse)
+            minibatch = unfinished_parses[start:end]
+            transitions = model.predict(minibatch)
             logger.debug(transitions)
             for e in range(len(transitions)):
-                minibatch_parse[e].parse([transitions[e]])
-                logger.debug(f'parsed dependencies {minibatch_parse[e].dependencies}'
-                    f'\n\t stack {minibatch_parse[e].stack}'
-                    f'\n\t buffer {minibatch_parse[e].buffer}'
-                    f'\n\t for sentence {minibatch_parse[e].sentence}')
+                minibatch[e].parse([transitions[e]])
+                logger.debug(f'parsed dependencies {minibatch[e].dependencies}'
+                    f'\n\t stack {minibatch[e].stack}'
+                    f'\n\t buffer {minibatch[e].buffer}'
+                    f'\n\t for sentence {minibatch[e].sentence}')
 
         remove = []
         for p in unfinished_parses:

@@ -46,7 +46,8 @@ def train(parser, train_data, dev_data, output_path, batch_size=1024, n_epochs=1
     ###     Adam Optimizer: https://pytorch.org/docs/stable/optim.html
     ###     Cross Entropy Loss: https://pytorch.org/docs/stable/nn.html#crossentropyloss
 
-
+    optimizer = optim.Adam(parser.model.parameters())
+    loss_func = nn.CrossEntropyLoss()
     ### END YOUR CODE
 
     for epoch in range(n_epochs):
@@ -99,6 +100,15 @@ def train_for_epoch(parser, train_data, dev_data, optimizer, loss_func, batch_si
             ### Please see the following docs for support:
             ###     Optimizer Step: https://pytorch.org/docs/stable/optim.html#optimizer-step
 
+            # zero the parameter gradients
+            optimizer.zero_grad()
+
+            # forward + backward + optimize
+            logits = parser.model(train_x)
+
+            loss = loss_func(logits, train_y)
+            loss.backward()
+            optimizer.step()
 
             ### END YOUR CODE
             prog.update(1)
@@ -115,10 +125,14 @@ def train_for_epoch(parser, train_data, dev_data, optimizer, loss_func, batch_si
 
 if __name__ == "__main__":
     # Note: Set debug to False, when training on entire corpus
-    debug = True
-    # debug = False
+    # debug = True
+    debug = False
 
-    assert(torch.__version__ == "1.0.0"),  "Please install torch version 1.0.0"
+    args = sys.argv
+    if len(args) != 2:
+        raise Exception("You did not provide a valid keyword. Either provide 'train' or 'test', when executing this script")
+
+    assert(torch.__version__ >= "1.0.0"),  "Please install torch version 1.0.0"
 
     print(80 * "=")
     print("INITIALIZING")
@@ -139,7 +153,8 @@ if __name__ == "__main__":
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    train(parser, train_data, dev_data, output_path, batch_size=1024, n_epochs=10, lr=0.0005)
+    if args[1] == 'train':
+        train(parser, train_data, dev_data, output_path, batch_size=1024, n_epochs=10, lr=0.0005)
 
     if not debug:
         print(80 * "=")

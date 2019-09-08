@@ -282,7 +282,11 @@ class ModelWrapper(object):
 
         pred = self.parser.model(mb_x)
         pred = pred.detach().numpy()
+
+        # print(f'mb_l: {len(mb_l)}')
+        # print(f'mb_l: {np.array(mb_l).astype("float32")}')
         pred = np.argmax(pred + 10000 * np.array(mb_l).astype('float32'), 1)
+        # print(f'pred: {pred.size()}')
         pred = ["S" if p == 2 else ("LA" if p == 0 else "RA") for p in pred]
         return pred
 

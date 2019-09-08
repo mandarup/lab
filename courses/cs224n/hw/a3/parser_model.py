@@ -13,6 +13,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import logging
+from utils import logging_utils
+logger = logging_utils.get_logger(module=__name__,loglevel = logging.INFO)
+
 class ParserModel(nn.Module):
     """ Feedforward neural network with an embedding layer and single hidden layer.
     The ParserModel will predict which transition should be applied to a
@@ -61,7 +65,7 @@ class ParserModel(nn.Module):
         ###         It has been shown empirically, that this provides better initial weights
         ###         for training networks than random uniform initialization.
         ###         For more details checkout this great blogpost:
-        ###             http://andyljones.tumblr.com/post/110998971763/an-explanation-of-xavier-initialization 
+        ###             http://andyljones.tumblr.com/post/110998971763/an-explanation-of-xavier-initialization
         ### Hints:
         ###     - After you create a linear layer you can access the weight
         ###       matrix via:
@@ -72,6 +76,12 @@ class ParserModel(nn.Module):
         ###     Xavier Init: https://pytorch.org/docs/stable/nn.html#torch.nn.init.xavier_uniform_
         ###     Dropout: https://pytorch.org/docs/stable/nn.html#torch.nn.Dropout
 
+        self.embed_to_hidden = nn.Linear(self.embed_size * self.n_features, self.hidden_size)
+        nn.init.xavier_uniform_(self.embed_to_hidden.weight,gain = 1)
+
+        self.dropout = nn.Dropout(self.dropout_prob)
+        self.hidden_to_logits = nn.Linear(self.hidden_size, self.n_classes)
+        nn.init.xavier_uniform_(self.hidden_to_logits.weight, gain = 1)
 
         ### END YOUR CODE
 
@@ -103,8 +113,13 @@ class ParserModel(nn.Module):
         ###  Please see the following docs for support:
         ###     Embedding Layer: https://pytorch.org/docs/stable/nn.html#torch.nn.Embedding
         ###     View: https://pytorch.org/docs/stable/tensors.html#torch.Tensor.view
+        x = self.pretrained_embeddings(t)
+        # logger.debug(f'size before reshape {x.size()}')
+        # print(f'size before reshape {x.size()}')
 
-
+        x = x.view(x.size()[0],-1)
+        # logger.debug(f'size after reshape {x.size()}')
+        # print(f'size after reshape {x.size()}')
         ### END YOUR CODE
         return x
 
@@ -141,6 +156,13 @@ class ParserModel(nn.Module):
         ###
         ### Please see the following docs for support:
         ###     ReLU: https://pytorch.org/docs/stable/nn.html?highlight=relu#torch.nn.functional.relu
+        # print(f'size forward reshape {t.size()}')
+
+        embed = self.embedding_lookup(t)
+        hidden = self.embed_to_hidden(embed)
+        x = self.hidden_to_logits(hidden)
+        x = self.dropout(x)
+        logits = F.relu(x)
 
 
         ### END YOUR CODE
