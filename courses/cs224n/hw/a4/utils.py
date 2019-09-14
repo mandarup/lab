@@ -16,6 +16,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import logging_utils
+
+logger = logging_utils.get_logger()
+
 
 def pad_sents(sents, pad_token):
     """ Pad list of sentences according to the longest sentence in the batch.
@@ -29,7 +33,10 @@ def pad_sents(sents, pad_token):
     sents_padded = []
 
     ### YOUR CODE HERE (~6 Lines)
-
+    max_len = max(len(s) for s in sents)
+    for s in sents:
+        pad_len = max_len - len(s)
+        sents_padded.append(s + pad_token * pad_len)
 
     ### END YOUR CODE
 
@@ -76,3 +83,14 @@ def batch_iter(data, batch_size, shuffle=False):
 
         yield src_sents, tgt_sents
 
+
+
+def test_pad_sents():
+    sents = ['a', 'ab']
+    pad_token = '<pad>'
+    padded = pad_sents(sents, pad_token)
+    assert padded == ['a<pad>','ab']
+
+
+if __name__ == '__main__':
+    test_pad_sents()
