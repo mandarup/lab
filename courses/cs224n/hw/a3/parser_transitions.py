@@ -157,9 +157,9 @@ def minibatch_parse(sentences, model, batch_size):
 
         logger.debug(f'remaining indices {[partial_parses.index(i) for i in unfinished_parses]}')
         if len(unfinished_parses) == 1:
-            logger.debug(f'buggy unfinished stack{unfinished_parses[0].stack}')
-            logger.debug(f'buggy unfinished buffer {unfinished_parses[0].buffer}')
-            logger.debug(f'buggy unfinished index {partial_parses.index(unfinished_parses[0])}')
+            logger.error(f'unfinished stack{unfinished_parses[0].stack}')
+            logger.error(f'unfinished buffer {unfinished_parses[0].buffer}')
+            logger.error(f'unfinished index {partial_parses.index(unfinished_parses[0])}')
 
         logger.debug(f'parsed dependencies {dependencies}')
         logger.debug(f'remaining parses {len(unfinished_parses)}')
@@ -253,7 +253,7 @@ def test_minibatch_parse():
 if __name__ == '__main__':
     args = sys.argv
     if len(args) != 2:
-        raise Exception("You did not provide a valid keyword. Either provide 'part_c' or 'part_d', when executing this script")
+        raise Exception("You did not provide a valid keyword. Either provide 'test_parser' or 'test_minibatch_parser', when executing this script")
     elif args[1] == "test_parser":
         test_parse_step()
         test_parse()

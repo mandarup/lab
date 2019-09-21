@@ -292,6 +292,21 @@ class ModelWrapper(object):
 
 
 def read_conll(in_file, lowercase=False, max_example=None):
+    """Parse data.
+
+    Parse raw data into python objects for further preprocessing.
+
+    Args:
+        in_file (str) : path to data
+        lowercase ( bool)
+        max_example ( int)
+
+    Returns:
+        (list of dicts) : a list with dicts of format
+            {'word': [<word>], 'pos': [<pos>], 'head': [<head>], 'label': [<label>]}
+            for each row in data.
+
+    """
     examples = []
     with open(in_file) as f:
         word, pos, head, label = [], [], [], []

@@ -14,9 +14,15 @@ import time
 from torch import nn, optim
 import torch
 from tqdm import tqdm
+import sys
 
 from parser_model import ParserModel
 from utils.parser_utils import minibatches, load_and_preprocess_data, AverageMeter
+
+import logging
+
+from utils import logging_utils
+logger = logging_utils.get_logger(loglevel = logging.DEBUG)
 
 # -----------------
 # Primary Functions
@@ -126,7 +132,7 @@ def train_for_epoch(parser, train_data, dev_data, optimizer, loss_func, batch_si
 if __name__ == "__main__":
     # Note: Set debug to False, when training on entire corpus
     # debug = True
-    debug = False
+    debug = True
 
     args = sys.argv
     if len(args) != 2:
@@ -147,7 +153,14 @@ if __name__ == "__main__":
     print(80 * "=")
     print("TRAINING")
     print(80 * "=")
-    output_dir = "results/{:%Y%m%d_%H%M%S}/".format(datetime.now())
+
+    if not debug:
+        # output_dir = "results/{:%Y%m%d_%H%M%S}/".format(datetime.now())
+        output_dir = "results/model-20190907_225211/"
+    else:
+        output_dir = "results/model.test/"
+
+
     output_path = output_dir + "model.weights"
 
     if not os.path.exists(output_dir):
@@ -156,14 +169,13 @@ if __name__ == "__main__":
     if args[1] == 'train':
         train(parser, train_data, dev_data, output_path, batch_size=1024, n_epochs=10, lr=0.0005)
 
-    if not debug:
-        print(80 * "=")
-        print("TESTING")
-        print(80 * "=")
-        print("Restoring the best model weights found on the dev set")
-        parser.model.load_state_dict(torch.load(output_path))
-        print("Final evaluation on test set",)
-        parser.model.eval()
-        UAS, dependencies = parser.parse(test_data)
-        print("- test UAS: {:.2f}".format(UAS * 100.0))
-        print("Done!")
+    print(80 * "=")
+    print("TESTING")
+    print(80 * "=")
+    print("Restoring the best model weights found on the dev set")
+    parser.model.load_state_dict(torch.load(output_path))
+    print("Final evaluation on test set")
+    parser.model.eval()
+    UAS, dependencies = parser.parse(test_data)
+    print("- test UAS: {:.2f}".format(UAS * 100.0))
+    print("Done!")
