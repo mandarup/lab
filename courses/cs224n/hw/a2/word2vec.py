@@ -2,6 +2,7 @@
 
 import numpy as np
 import random
+from numba import jit
 
 from utils.gradcheck import gradcheck_naive
 from utils.utils import normalizeRows, softmax
@@ -11,11 +12,9 @@ import logging
 # logging.basicConfig(format='%(module) %() %(levelname)s:%(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-logger.setLevel(logging.DEBUG)
-
 # create console handler and set level to debug
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.ERROR)
 
 # create formatter
 formatter = logging.Formatter('%(asctime)s -- %(funcName)s %(lineno)d - %(levelname)s - %(message)s')
@@ -27,7 +26,7 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 
-
+@jit(nopython=True, parallel=True)
 def sigmoid(x):
     """
     Compute the sigmoid function for the input here.
@@ -44,6 +43,7 @@ def sigmoid(x):
     return s
 
 
+@jit(nopython=True, parallel=True)
 def naiveSoftmaxLossAndGradient(
     centerWordVec,
     outsideWordIdx,
@@ -86,18 +86,18 @@ def naiveSoftmaxLossAndGradient(
     # (n_out, 1) : (n_out, n_emb) x (n_emb, )
     # uTv = np.dot(outsideVectors, centerWordVec.reshape(-1,1))
     uTv = np.matmul(outsideVectors, centerWordVec)#.reshape(-1,1)
-    logger.debug(uTv.shape)
+    # logger.debug(uTv.shape)
     assert uTv.shape == (outsideVectors.shape[0], )
 
     # (n_out,1)
     yHat = softmax(uTv)
-    logger.debug(f'yhat {yHat}')
+    # logger.debug(f'yhat {yHat}')
 
     # output shape: (1,1)
     loss = - np.log(yHat[outsideWordIdx])
 
     #loss = - sum(np.log(softmax(outsideVectors* centerWordVec)))
-    logger.debug(f'loss {loss}')
+    # logger.debug(f'loss {loss}')
 
     # dvc = U[y-yhat]
 
@@ -105,24 +105,24 @@ def naiveSoftmaxLossAndGradient(
     # (n_out)
     error = yHat.copy()
     error[outsideWordIdx] -= 1
-    logger.debug(f'error {error.shape}')
+    # logger.debug(f'error {error.shape}')
 
     # dvc = U .(y-yhat)
     # (n_emb,1) <- (n_out, n_emb).T x (n_out)
     gradCenterVec = np.dot(outsideVectors.T, error)
-    logger.debug(f'gradCenterVec {gradCenterVec.shape}')
+    # logger.debug(f'gradCenterVec {gradCenterVec.shape}')
     assert gradCenterVec.shape == centerWordVec.shape
 
     # dU = (y-yhat) * Vc
     # (n_out, n_emb) <- (n_out, ) x (n_emb,)
     gradOutsideVecs = np.outer(error, centerWordVec)
-    logger.debug(f'gradOutsideVecs {gradOutsideVecs.shape}')
+    # logger.debug(f'gradOutsideVecs {gradOutsideVecs.shape}')
     assert gradOutsideVecs.shape == outsideVectors.shape
     ### END YOUR CODE
 
     return loss, gradCenterVec, gradOutsideVecs
 
-
+@jit(nopython=False, parallel=True)
 def getNegativeSamples(outsideWordIdx, dataset, K):
     """ Samples K indexes which are not the outsideWordIdx """
 
@@ -134,7 +134,7 @@ def getNegativeSamples(outsideWordIdx, dataset, K):
         negSampleWordIndices[k] = newidx
     return negSampleWordIndices
 
-
+@jit(nopython=False, parallel=True)
 def negSamplingLossAndGradient(
     centerWordVec,
     outsideWordIdx,
@@ -179,10 +179,10 @@ def negSamplingLossAndGradient(
         else:
             sign = -1
         uTv = np.dot(sign * outsideVectors[sample], centerWordVec)
-        logger.debug(uTv.shape)
+        # logger.debug(uTv.shape)
 
         yHat = sigmoid(uTv)
-        logger.debug(f'yhat {yHat}')
+        # logger.debug(f'yhat {yHat}')
 
         # output shape: (1,1)
         loss += - np.log(yHat)
@@ -191,12 +191,12 @@ def negSamplingLossAndGradient(
 
         # dvc = U .(y-yhat)
         gradCenterVec += sign * outsideVectors[sample] *  error
-        logger.debug(f'gradCenterVec {gradCenterVec.shape}')
+        # logger.debug(f'gradCenterVec {gradCenterVec.shape}')
         # assert gradCenterVec.shape == centerWordVec.shape
 
         # dU = (y-yhat) * Vc
         gradOutsideVecs[sample] += sign * centerWordVec * error
-        logger.debug(f'gradOutsideVecs {gradOutsideVecs.shape}')
+        # logger.debug(f'gradOutsideVecs {gradOutsideVecs.shape}')
         # assert gradOutsideVecs.shape == outsideVectors.shape
 
     ### END YOUR CODE
