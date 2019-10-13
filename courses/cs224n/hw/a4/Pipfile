@@ -13,7 +13,7 @@ docopt = "*"
 pytorch = "*"
 nltk = "*"
 torchvision = "*"
-Python = ">3.5"
+torch = {file = "https://download.pytorch.org/whl/cpu/torch-1.0.1.post2-cp37-cp37m-linux_x86_64.whl"}
 
 [requires]
 python_version = "3.7"

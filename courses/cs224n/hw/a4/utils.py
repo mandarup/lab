@@ -36,8 +36,12 @@ def pad_sents(sents, pad_token):
     max_len = max(len(s) for s in sents)
     for s in sents:
         pad_len = max_len - len(s)
-        sents_padded.append(s + pad_token * pad_len)
-
+        padding = pad_token * pad_len
+        # padding = '' if not padding else padding
+        logger.debug(f'padding : {padding}')
+        logger.debug(f'padding : {s}')
+        if padding:
+            sents_padded.append(s + padding)
     ### END YOUR CODE
 
     return sents_padded
